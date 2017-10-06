@@ -27,10 +27,6 @@ apply2 ul l f a1 a2 = l $ app2 ul ul f a1 a2
 data Mapper a b = M{up:: a -> b, down:: b -> a}
 flipMapper M{up=u, down=d}=M{up=d, down=u}
 
-intMap = M{up = getInt, down = CInt}
-stringMap = M{up = getString, down = CString}
-constMap = M{up = getConstant, down = EConstant}
-
 compose :: Mapper a b -> Mapper b c -> Mapper a c
 compose M{up=u1, down=d1}  M{up=u2, down=d2} = M{up= u2 . u1, down = d1 . d2}
 
@@ -39,14 +35,19 @@ func (M{up=u1, down=d1}) (M{up=u2,down=d2}) = M{up = \f -> u2 . f . d1, down = \
 
 tup2 :: Mapper a b -> Mapper c d -> Mapper (a, c) (b, d)
 tup2 (M{up=u1,down=d1}) (M{up=u2,down=d2}) = M{up = \(a, c) -> (u1 a, u2 c), down = \(b,d) -> (d1 b, d2 d)}
-itos = func intMap stringMap
 
-applyConstant = apply2 getConstant EConstant
+intMap = M{up = getInt, down = CInt}
+stringMap = M{up = getString, down = CString}
 
-aII = applyConstant . apply2 getInt CInt
-aSS = applyConstant . apply2 getString CString
+constMap = M{up = getConstant, down = EConstant}
 
-uminus a = EConstant $ CInt $ - (getInt . getConstant) a
+ciMap = compose constMap intMap
+csMap = compose constMap stringMap
+
+aII = down $ func ciMap (func ciMap ciMap)
+aSS = down $ func csMap (func csMap csMap)
+
+i2i = func ciMap ciMap
 
 tryApply1 _ [] = Nothing
 tryApply1 f (x:l) = Just (f x, l)
@@ -58,7 +59,7 @@ tryApply2 f (x:y:l) = Just (f x y, l)
 evalExtern id =
   case id of
     "+" -> tryApply2 (aII (+))
-    "u-" -> tryApply1 uminus
+    "u-" -> tryApply1 $ down i2i (\x -> -x)
     "-" -> tryApply2 (aII (-))
     "++" -> tryApply2 (aSS (++))
     _ -> error $ "External function not defined: " ++ id    
