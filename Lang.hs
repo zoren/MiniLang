@@ -24,6 +24,23 @@ trySplitAt n l =
 app2 ul1 ul2 f a1 a2 = f (ul1 a1) (ul2 a2)
 apply2 ul l f a1 a2 = l $ app2 ul ul f a1 a2
 
+data Mapper a b = M{up:: a -> b, down:: b -> a}
+flipMapper M{up=u, down=d}=M{up=d, down=u}
+
+intMap = M{up = getInt, down = CInt}
+stringMap = M{up = getString, down = CString}
+constMap = M{up = getConstant, down = EConstant}
+
+compose :: Mapper a b -> Mapper b c -> Mapper a c
+compose M{up=u1, down=d1}  M{up=u2, down=d2} = M{up= u2 . u1, down = d1 . d2}
+
+func :: Mapper a b -> Mapper c d -> Mapper (a -> c) (b -> d)
+func (M{up=u1, down=d1}) (M{up=u2,down=d2}) = M{up = \f -> u2 . f . d1, down = \f -> d2 . f . u1}
+
+tup2 :: Mapper a b -> Mapper c d -> Mapper (a, c) (b, d)
+tup2 (M{up=u1,down=d1}) (M{up=u2,down=d2}) = M{up = \(a, c) -> (u1 a, u2 c), down = \(b,d) -> (d1 b, d2 d)}
+itos = func intMap stringMap
+
 applyConstant = apply2 getConstant EConstant
 
 aII = applyConstant . apply2 getInt CInt
