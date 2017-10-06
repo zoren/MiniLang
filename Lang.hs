@@ -21,11 +21,6 @@ trySplitAt n l =
   then Just $ splitAt n l
   else Nothing
 
-tSym f (a, b) = (f a, f b)
-
-applyConstant2 = tSym getConstant
-
-applyConst2 l ul f (a1, a2) = EConstant $ l $ f ((ul . getConstant) a1) ((ul . getConstant) a2)
 apply2 ul l f a1 a2 = l $ f (ul a1) (ul a2)
 
 applyConstant = apply2 getConstant EConstant
@@ -33,7 +28,6 @@ applyConstant = apply2 getConstant EConstant
 aII = applyConstant . apply2 getInt CInt
 aSS = applyConstant . apply2 getString CString
 
-applyInt2Int f (a1, a2) = EConstant $ CInt $ f ((getInt . getConstant) a1) ((getInt . getConstant) a2)
 uminus a = EConstant $ CInt $ - (getInt . getConstant) a
 
 tryApply1 _ [] = Nothing
