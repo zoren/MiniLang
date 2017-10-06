@@ -21,7 +21,8 @@ trySplitAt n l =
   then Just $ splitAt n l
   else Nothing
 
-apply2 ul l f a1 a2 = l $ f (ul a1) (ul a2)
+app2 ul1 ul2 f a1 a2 = f (ul1 a1) (ul2 a2)
+apply2 ul l f a1 a2 = l $ app2 ul ul f a1 a2
 
 applyConstant = apply2 getConstant EConstant
 
