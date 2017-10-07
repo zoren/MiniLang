@@ -14,6 +14,7 @@ data Constant =
 data Pattern =
   PVar Id
   | PConst Constant
+  | PApply Pattern [Pattern]
   deriving (Show, Eq)
 
 data Exp =
@@ -71,10 +72,25 @@ evalExtern id =
     "++" -> tryApply2 (aSS (++))
     _ -> error $ "External function not defined: " ++ id    
 
+bindPatterns env [] [] = Just env
+bindPatterns env (e:es) (p:ps) =
+  case bindPattern env e p of
+    Nothing -> Nothing
+    Just env -> bindPatterns env es ps
+bindPatterns _ _ _ = error "apply pattern did not match"
+
+bindPattern :: Map Id Exp -> Exp -> Pattern -> Maybe (Map Id Exp)
 bindPattern env e pat =
   case pat of
     PVar id -> Just $ Map.insert id e env
     PConst pc -> if (EConstant pc) == e then Just Map.empty else Nothing
+    PApply pat pats ->
+      case e of
+        EApply e es ->
+          case bindPattern env e pat of
+            Nothing -> Nothing
+            Just env' -> bindPatterns env' es pats
+        _ -> error "pattern didn't match expected constructor"
 
 tryEvalFunc env f [] = f
 tryEvalFunc env f (args@(a:as)) =
@@ -107,7 +123,12 @@ onePlusTwo = EApply (EConstant $ CExtern "+") [EConstant $ CInt 1, EConstant $ C
 caseTest =
   (ELambda [(PConst $ CString "a", EConstant $ CInt 1),
                    (PConst $ CString "b", EConstant $ CInt 2)])
-           
+
+lhead = ELambda [(PApply (PConst $ CConstructor "cons") [PVar "h", PVar "t"], EVar "h")]
+ltail = ELambda [(PApply (PConst $ CConstructor "cons") [PVar "h", PVar "t"], EVar "t")]
+
+llist = (EApply (EConstant $ CConstructor "cons") [onePlusTwo, EConstant $ CConstructor "nil"])
+
 main =
   do
     print $ eval Map.empty onePlusTwo
@@ -119,4 +140,6 @@ main =
     print $ eval Map.empty (EApply (ELambda [(PConst $ CString "a", EConstant $ CInt 1)]) [EConstant $ CString "a"])
     print $ eval Map.empty (EApply caseTest [EConstant $ CString "a"])
     print $ eval Map.empty (EApply caseTest [EConstant $ CString "b"])
-    print $ eval Map.empty (EApply (EConstant $ CConstructor "cons") [onePlusTwo, EConstant $ CConstructor "nil"])
+    print $ eval Map.empty llist
+    print $ eval Map.empty $ EApply lhead [llist]
+    print $ eval Map.empty $ EApply ltail [llist]
