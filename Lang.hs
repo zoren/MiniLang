@@ -12,6 +12,7 @@ data Constant =
 
 data Pattern =
   PVar Id
+  | PConst Constant
   deriving (Show, Eq)
 
 data Exp =
@@ -72,6 +73,7 @@ evalExtern id =
 bindPattern env e pat =
   case pat of
     PVar id -> Just $ Map.insert id e env
+    PConst pc -> if (EConstant pc) == e then Just Map.empty else Nothing
 
 tryEvalFunc env f [] = f
 tryEvalFunc env f (args@(a:as)) =
@@ -99,3 +101,4 @@ main =
     print $ eval Map.empty (EApply (EConstant $ CExtern "++") [EConstant $ CString "a", EConstant $ CString "b"])
     print $ eval Map.empty (EApply (ELambda (PVar "x")
                                     (EApply (EConstant $ CExtern "++") [EVar "x", EVar "x"])) [EConstant $ CString "a"])
+    print $ eval Map.empty (EApply (ELambda (PConst $ CString "a") (EConstant $ CInt 1)) [EConstant $ CString "a"])
