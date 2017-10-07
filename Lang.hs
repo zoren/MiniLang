@@ -8,6 +8,7 @@ data Constant =
   CInt { getInt :: Int }
   | CString { getString :: String }
   | CExtern Id
+  | CConstructor Id
   deriving (Show, Eq)
 
 data Pattern =
@@ -91,6 +92,7 @@ tryEvalFunc env f (args@(a:as)) =
       case evalExtern extern args of
         Nothing -> EApply f args
         Just (eres, remArgs) -> tryEvalFunc env eres remArgs
+    EConstant(CConstructor id) -> EApply f args
     _ -> error "applying non-function"
       
 eval env e =
@@ -100,13 +102,15 @@ eval env e =
     EVar id -> env Map.! id
     EApply e1 args -> tryEvalFunc env e1 $ map (eval env) args
 
+onePlusTwo = EApply (EConstant $ CExtern "+") [EConstant $ CInt 1, EConstant $ CInt 2]
+
 caseTest =
   (ELambda [(PConst $ CString "a", EConstant $ CInt 1),
                    (PConst $ CString "b", EConstant $ CInt 2)])
            
 main =
   do
-    print $ eval Map.empty (EApply (EConstant $ CExtern "+") [EConstant $ CInt 1, EConstant $ CInt 2])
+    print $ eval Map.empty onePlusTwo
     print $ eval Map.empty (EApply (EConstant $ CExtern "u-") [EConstant $ CInt 1]) 
     print $ eval Map.empty (EApply (EConstant $ CExtern "-") [EConstant $ CInt 1, EConstant $ CInt 2])
     print $ eval Map.empty (EApply (EConstant $ CExtern "++") [EConstant $ CString "a", EConstant $ CString "b"])
@@ -115,3 +119,4 @@ main =
     print $ eval Map.empty (EApply (ELambda [(PConst $ CString "a", EConstant $ CInt 1)]) [EConstant $ CString "a"])
     print $ eval Map.empty (EApply caseTest [EConstant $ CString "a"])
     print $ eval Map.empty (EApply caseTest [EConstant $ CString "b"])
+    print $ eval Map.empty (EApply (EConstant $ CConstructor "cons") [onePlusTwo, EConstant $ CConstructor "nil"])
