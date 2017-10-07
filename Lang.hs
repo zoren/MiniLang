@@ -18,7 +18,7 @@ data Pattern =
 data Exp =
   EConstant {getConstant :: Constant}
   | EVar Id
-  | ELambda Pattern Exp
+  | ELambda [(Pattern, Exp)]
   | EApply Exp [Exp]
   deriving (Show, Eq)
 
@@ -78,8 +78,15 @@ bindPattern env e pat =
 tryEvalFunc env f [] = f
 tryEvalFunc env f (args@(a:as)) =
   case f of
-    ELambda pat ebody ->
-      tryEvalFunc env (eval (fromJust $ bindPattern env a pat) ebody) as
+    ELambda cases ->
+      let
+        runFirstCase [] = error "pattern not caught"
+        runFirstCase ((pat, ecase):cases') =
+          case bindPattern env a pat of
+            Nothing -> runFirstCase cases'
+            Just newEnv -> tryEvalFunc newEnv (eval newEnv ecase) as
+      in
+        runFirstCase cases
     EConstant(CExtern extern) ->
       case evalExtern extern args of
         Nothing -> EApply f args
@@ -89,9 +96,13 @@ tryEvalFunc env f (args@(a:as)) =
 eval env e =
   case e of
     EConstant _ -> e
-    ELambda _ _ -> e
+    ELambda _ -> e
     EVar id -> env Map.! id
     EApply e1 args -> tryEvalFunc env e1 $ map (eval env) args
+
+caseTest =
+  (ELambda [(PConst $ CString "a", EConstant $ CInt 1),
+                   (PConst $ CString "b", EConstant $ CInt 2)])
            
 main =
   do
@@ -99,6 +110,8 @@ main =
     print $ eval Map.empty (EApply (EConstant $ CExtern "u-") [EConstant $ CInt 1]) 
     print $ eval Map.empty (EApply (EConstant $ CExtern "-") [EConstant $ CInt 1, EConstant $ CInt 2])
     print $ eval Map.empty (EApply (EConstant $ CExtern "++") [EConstant $ CString "a", EConstant $ CString "b"])
-    print $ eval Map.empty (EApply (ELambda (PVar "x")
-                                    (EApply (EConstant $ CExtern "++") [EVar "x", EVar "x"])) [EConstant $ CString "a"])
-    print $ eval Map.empty (EApply (ELambda (PConst $ CString "a") (EConstant $ CInt 1)) [EConstant $ CString "a"])
+    print $ eval Map.empty (EApply (ELambda [(PVar "x",
+                                    EApply (EConstant $ CExtern "++") [EVar "x", EVar "x"])]) [EConstant $ CString "a"])
+    print $ eval Map.empty (EApply (ELambda [(PConst $ CString "a", EConstant $ CInt 1)]) [EConstant $ CString "a"])
+    print $ eval Map.empty (EApply caseTest [EConstant $ CString "a"])
+    print $ eval Map.empty (EApply caseTest [EConstant $ CString "b"])
