@@ -1,5 +1,6 @@
 import Data.Map (Map)
 import qualified Data.Map as Map
+import Data.Maybe(fromJust)
 
 type Id = String
 
@@ -9,10 +10,14 @@ data Constant =
   | CExtern Id
   deriving (Show, Eq)
 
+data Pattern =
+  PVar Id
+  deriving (Show, Eq)
+
 data Exp =
   EConstant {getConstant :: Constant}
   | EVar Id
-  | ELambda Id Exp
+  | ELambda Pattern Exp
   | EApply Exp [Exp]
   deriving (Show, Eq)
 
@@ -63,30 +68,34 @@ evalExtern id =
     "-" -> tryApply2 (aII (-))
     "++" -> tryApply2 (aSS (++))
     _ -> error $ "External function not defined: " ++ id    
+
+bindPattern env e pat =
+  case pat of
+    PVar id -> Just $ Map.insert id e env
+
+tryEvalFunc env f [] = f
+tryEvalFunc env f (args@(a:as)) =
+  case f of
+    ELambda pat ebody ->
+      tryEvalFunc env (eval (fromJust $ bindPattern env a pat) ebody) as
+    EConstant(CExtern extern) ->
+      case evalExtern extern args of
+        Nothing -> EApply f args
+        Just (eres, remArgs) -> tryEvalFunc env eres remArgs
+    _ -> error "applying non-function"
       
 eval env e =
   case e of
     EConstant _ -> e
     ELambda _ _ -> e
     EVar id -> env Map.! id
-    EApply e1 args ->
-      let vargs = map (eval env) args in
-      case eval env e1 of
-        ELambda var ebody ->
-          foldl (\f a -> eval (Map.insert var a env) f) ebody vargs
-        EConstant(CExtern extern) ->
-          case evalExtern extern vargs of
-            Nothing -> e
-            Just (eres, remArgs) ->
-              eval env $
-              if remArgs == []
-              then eres
-              else EApply eres remArgs
-        _ -> error "applying non-function"
+    EApply e1 args -> tryEvalFunc env e1 $ map (eval env) args
            
 main =
   do
     print $ eval Map.empty (EApply (EConstant $ CExtern "+") [EConstant $ CInt 1, EConstant $ CInt 2])
     print $ eval Map.empty (EApply (EConstant $ CExtern "u-") [EConstant $ CInt 1]) 
     print $ eval Map.empty (EApply (EConstant $ CExtern "-") [EConstant $ CInt 1, EConstant $ CInt 2])
-    print $ eval Map.empty (EApply (EConstant $ CExtern "++") [EConstant $ CString "a", EConstant $ CString "b"])   
+    print $ eval Map.empty (EApply (EConstant $ CExtern "++") [EConstant $ CString "a", EConstant $ CString "b"])
+    print $ eval Map.empty (EApply (ELambda (PVar "x")
+                                    (EApply (EConstant $ CExtern "++") [EVar "x", EVar "x"])) [EConstant $ CString "a"])
