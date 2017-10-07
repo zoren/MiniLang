@@ -72,6 +72,8 @@ eval env e =
     EApply e1 args ->
       let vargs = map (eval env) args in
       case eval env e1 of
+        ELambda var ebody ->
+          foldl (\f a -> eval (Map.insert var a env) f) ebody vargs
         EConstant(CExtern extern) ->
           case evalExtern extern vargs of
             Nothing -> e
