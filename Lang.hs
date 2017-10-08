@@ -36,19 +36,18 @@ compose M{lift = l1, unlift = u1}  M{lift = l2, unlift = u2} = M{lift = l1 . l2,
 
 func :: Mapper a b -> Mapper c d -> Mapper (a -> c) (b -> d)
 func M{lift = l1, unlift = u1} M{lift = l2, unlift = u2} = M{lift = \f -> l2 . f . u1, unlift = \f -> u2 . f . l1}
-
-intMap = M{unlift = getInt, lift = CInt}
-stringMap = M{unlift = getString, lift = CString}
+infixr -->
+(-->) = func
 
 constMap = M{unlift = getConstant, lift = EConstant}
 
-ciMap = compose constMap intMap
-csMap = compose constMap stringMap
+int = compose constMap M{lift = CInt, unlift = getInt}
+string = compose constMap M{lift = CString, unlift = getString}
 
-aII = lift $ func ciMap (func ciMap ciMap)
-aSS = lift $ func csMap (func csMap csMap)
+ii2i = int -->  int --> int
+ss2s = string --> string --> string
 
-i2i = func ciMap ciMap
+i2i = int --> int
 
 tryApply1 _ [] = Nothing
 tryApply1 f (x:l) = Just (f x, l)
@@ -59,10 +58,10 @@ tryApply2 f (x:y:l) = Just (f x y, l)
   
 evalExtern id =
   case id of
-    "+" -> tryApply2 (aII (+))
+    "+" -> tryApply2 $ lift ii2i (+)
     "u-" -> tryApply1 $ lift i2i (\x -> -x)
-    "-" -> tryApply2 (aII (-))
-    "++" -> tryApply2 (aSS (++))
+    "-" -> tryApply2 $ lift ii2i (-)
+    "++" -> tryApply2 $ lift ss2s (++)
     _ -> error $ "External function not defined: " ++ id    
 
 bindPatterns env [] [] = Just env
