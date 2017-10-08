@@ -32,13 +32,10 @@ trySplitAt n l =
 data Mapper a b = M{lift:: b -> a, unlift:: a -> b }
 
 compose :: Mapper a b -> Mapper b c -> Mapper a c
-compose M{unlift=u1, lift=d1}  M{unlift=u2, lift=d2} = M{unlift= u2 . u1, lift = d1 . d2}
+compose M{lift = l1, unlift = u1}  M{lift = l2, unlift = u2} = M{lift = l1 . l2, unlift = u2 . u1}
 
 func :: Mapper a b -> Mapper c d -> Mapper (a -> c) (b -> d)
-func (M{unlift=u1, lift=d1}) (M{unlift=u2,lift=d2}) = M{unlift = \f -> u2 . f . d1, lift = \f -> d2 . f . u1}
-
-tunlift2 :: Mapper a b -> Mapper c d -> Mapper (a, c) (b, d)
-tunlift2 (M{unlift=u1,lift=d1}) (M{unlift=u2,lift=d2}) = M{unlift = \(a, c) -> (u1 a, u2 c), lift = \(b,d) -> (d1 b, d2 d)}
+func M{lift = l1, unlift = u1} M{lift = l2, unlift = u2} = M{lift = \f -> l2 . f . u1, unlift = \f -> u2 . f . l1}
 
 intMap = M{unlift = getInt, lift = CInt}
 stringMap = M{unlift = getString, lift = CString}
