@@ -109,6 +109,7 @@ tryEvalFunc env f (args@(a:as)) =
         Nothing -> EApply f args
         Just (eres, remArgs) -> tryEvalFunc env eres remArgs
     EConstant(CConstructor id) -> EApply f args
+    EApply innerf innerargs -> tryEvalFunc env innerf $ innerargs ++ args
     _ -> error "applying non-function"
       
 eval env e =
@@ -143,5 +144,8 @@ main =
     print $ eval Map.empty llist
     print $ eval Map.empty $ EApply lhead [llist]
     print $ eval Map.empty $ EApply ltail [llist]
+    print $ eval Map.empty $ EApply (EApply (EConstant $ CExtern "+") [EConstant $ CInt 1]) [EConstant $ CInt 2]
     -- (\f -> f 2)(u-)
     print $ eval Map.empty $ EApply (ELambda [(PVar "f", EApply (EVar "f") [EConstant $ CInt 2])]) [EConstant $ CExtern "u-"]
+    -- (\f -> f 2)(+1)
+    print $ eval Map.empty $ EApply (ELambda [(PVar "f", EApply (EVar "f") [EConstant $ CInt 2])]) [EApply (EConstant $ CExtern "+") [EConstant $ CInt 1]]
