@@ -29,9 +29,6 @@ trySplitAt n l =
   then Just $ splitAt n l
   else Nothing
 
-app2 ul1 ul2 f a1 a2 = f (ul1 a1) (ul2 a2)
-apply2 ul l f a1 a2 = l $ app2 ul ul f a1 a2
-
 data Mapper a b = M{up:: a -> b, down:: b -> a}
 flipMapper M{up=u, down=d}=M{up=d, down=u}
 
