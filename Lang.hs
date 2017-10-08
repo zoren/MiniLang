@@ -29,28 +29,27 @@ trySplitAt n l =
   then Just $ splitAt n l
   else Nothing
 
-data Mapper a b = M{up:: a -> b, down:: b -> a}
-flipMapper M{up=u, down=d}=M{up=d, down=u}
+data Mapper a b = M{lift:: b -> a, unlift:: a -> b }
 
 compose :: Mapper a b -> Mapper b c -> Mapper a c
-compose M{up=u1, down=d1}  M{up=u2, down=d2} = M{up= u2 . u1, down = d1 . d2}
+compose M{unlift=u1, lift=d1}  M{unlift=u2, lift=d2} = M{unlift= u2 . u1, lift = d1 . d2}
 
 func :: Mapper a b -> Mapper c d -> Mapper (a -> c) (b -> d)
-func (M{up=u1, down=d1}) (M{up=u2,down=d2}) = M{up = \f -> u2 . f . d1, down = \f -> d2 . f . u1}
+func (M{unlift=u1, lift=d1}) (M{unlift=u2,lift=d2}) = M{unlift = \f -> u2 . f . d1, lift = \f -> d2 . f . u1}
 
-tup2 :: Mapper a b -> Mapper c d -> Mapper (a, c) (b, d)
-tup2 (M{up=u1,down=d1}) (M{up=u2,down=d2}) = M{up = \(a, c) -> (u1 a, u2 c), down = \(b,d) -> (d1 b, d2 d)}
+tunlift2 :: Mapper a b -> Mapper c d -> Mapper (a, c) (b, d)
+tunlift2 (M{unlift=u1,lift=d1}) (M{unlift=u2,lift=d2}) = M{unlift = \(a, c) -> (u1 a, u2 c), lift = \(b,d) -> (d1 b, d2 d)}
 
-intMap = M{up = getInt, down = CInt}
-stringMap = M{up = getString, down = CString}
+intMap = M{unlift = getInt, lift = CInt}
+stringMap = M{unlift = getString, lift = CString}
 
-constMap = M{up = getConstant, down = EConstant}
+constMap = M{unlift = getConstant, lift = EConstant}
 
 ciMap = compose constMap intMap
 csMap = compose constMap stringMap
 
-aII = down $ func ciMap (func ciMap ciMap)
-aSS = down $ func csMap (func csMap csMap)
+aII = lift $ func ciMap (func ciMap ciMap)
+aSS = lift $ func csMap (func csMap csMap)
 
 i2i = func ciMap ciMap
 
@@ -64,7 +63,7 @@ tryApply2 f (x:y:l) = Just (f x y, l)
 evalExtern id =
   case id of
     "+" -> tryApply2 (aII (+))
-    "u-" -> tryApply1 $ down i2i (\x -> -x)
+    "u-" -> tryApply1 $ lift i2i (\x -> -x)
     "-" -> tryApply2 (aII (-))
     "++" -> tryApply2 (aSS (++))
     _ -> error $ "External function not defined: " ++ id    
