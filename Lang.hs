@@ -63,10 +63,7 @@ type Environment = Map Id Exp
 
 bindPatterns :: Environment -> [Exp] -> [Pattern] -> Maybe Environment
 bindPatterns env [] [] = Just env
-bindPatterns env (e:es) (p:ps) =
-  case bindPattern env e p of
-    Nothing -> Nothing
-    Just newEnv -> bindPatterns newEnv es ps
+bindPatterns env (e:es) (p:ps) = bindPattern env e p >>= \newEnv -> bindPatterns newEnv es ps
 bindPatterns _ _ _ = error "apply pattern did not match"
 
 bindPattern :: Map Id Exp -> Exp -> Pattern -> Maybe (Map Id Exp)
@@ -76,10 +73,7 @@ bindPattern env e pat =
     PConst pc -> if (EConstant pc) == e then Just Map.empty else Nothing
     PApply pat' pats ->
       case e of
-        EApply e' es ->
-          case bindPattern env e' pat' of
-            Nothing -> Nothing
-            Just env' -> bindPatterns env' es pats
+        EApply e' es -> bindPattern env e' pat' >>= \env' -> bindPatterns env' es pats
         _ -> error "pattern didn't match expected constructor"
 
 tryEvalFunc :: Environment -> Exp -> [Exp] -> Exp
