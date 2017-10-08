@@ -70,7 +70,7 @@ bindPattern :: Map Id Exp -> Exp -> Pattern -> Maybe (Map Id Exp)
 bindPattern env e pat =
   case pat of
     PVar var -> Just $ Map.insert var e env
-    PConst pc -> if (EConstant pc) == e then Just Map.empty else Nothing
+    PConst pc -> if pc == getConstant e then Just Map.empty else Nothing
     PApply pat' pats ->
       case e of
         EApply e' es -> bindPattern env e' pat' >>= \env' -> bindPatterns env' es pats
