@@ -24,11 +24,6 @@ data Exp =
   | EApply Exp [Exp]
   deriving (Show, Eq)
 
-trySplitAt n l =
-  if length l >= n
-  then Just $ splitAt n l
-  else Nothing
-
 data Mapper a b = M{lift:: b -> a, unlift:: a -> b }
 
 compose :: Mapper a b -> Mapper b c -> Mapper a c
