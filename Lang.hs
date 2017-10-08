@@ -29,10 +29,9 @@ data Mapper a b = M{lift:: b -> a, unlift:: a -> b }
 compose :: Mapper a b -> Mapper b c -> Mapper a c
 compose M{lift = l1, unlift = u1}  M{lift = l2, unlift = u2} = M{lift = l1 . l2, unlift = u2 . u1}
 
-func :: Mapper a b -> Mapper c d -> Mapper (a -> c) (b -> d)
-func M{lift = l1, unlift = u1} M{lift = l2, unlift = u2} = M{lift = \f -> l2 . f . u1, unlift = \f -> u2 . f . l1}
 infixr -->
-(-->) = func
+(-->) :: Mapper a b -> Mapper c d -> Mapper (a -> c) (b -> d)
+(-->) M{lift = l1, unlift = u1} M{lift = l2, unlift = u2} = M{lift = \f -> l2 . f . u1, unlift = \f -> u2 . f . l1}
 
 constMap = M{unlift = getConstant, lift = EConstant}
 
