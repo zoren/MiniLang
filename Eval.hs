@@ -82,3 +82,6 @@ eval env e =
     ELambda _ -> e
     EVar var -> env Map.! var
     EApply e1 args -> tryEvalFunc env (eval env e1) $ map (eval env) args
+
+evalEmpty :: Exp -> Exp
+evalEmpty = eval Map.empty
