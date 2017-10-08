@@ -116,7 +116,7 @@ eval env e =
     EConstant _ -> e
     ELambda _ -> e
     EVar id -> env Map.! id
-    EApply e1 args -> tryEvalFunc env e1 $ map (eval env) args
+    EApply e1 args -> tryEvalFunc env (eval env e1) $ map (eval env) args
 
 onePlusTwo = EApply (EConstant $ CExtern "+") [EConstant $ CInt 1, EConstant $ CInt 2]
 
@@ -143,3 +143,5 @@ main =
     print $ eval Map.empty llist
     print $ eval Map.empty $ EApply lhead [llist]
     print $ eval Map.empty $ EApply ltail [llist]
+    -- (\f -> f 2)(u-)
+    print $ eval Map.empty $ EApply (ELambda [(PVar "f", EApply (EVar "f") [EConstant $ CInt 2])]) [EConstant $ CExtern "u-"]
