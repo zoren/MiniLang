@@ -89,11 +89,14 @@ tryEvalFunc env f (args@(a:as)) =
             Just newEnv -> tryEvalFunc newEnv (eval newEnv ecase) as
       in
         runFirstCase cases
-    EConstant(CExtern extern) ->
-      case evalExtern extern args of
-        Nothing -> EApply f args
-        Just (eres, remArgs) -> tryEvalFunc env eres remArgs
-    EConstant(CConstructor _) -> EApply f args
+    EConstant c ->
+      case c of
+        CExtern extern ->
+          case evalExtern extern args of
+            Nothing -> EApply f args
+            Just (eres, remArgs) -> tryEvalFunc env eres remArgs
+        CConstructor _ -> EApply f args
+        _ -> error "applying constant"
     EApply innerf innerargs -> tryEvalFunc env innerf $ innerargs ++ args
     _ -> error "applying non-function"
       
