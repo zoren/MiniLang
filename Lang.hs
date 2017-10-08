@@ -1,6 +1,5 @@
 import Data.Map (Map)
 import qualified Data.Map as Map
-import Data.Maybe(fromJust)
 
 type Id = String
 
@@ -33,52 +32,58 @@ infixr -->
 (-->) :: Mapper a b -> Mapper c d -> Mapper (a -> c) (b -> d)
 (-->) M{lift = l1, unlift = u1} M{lift = l2, unlift = u2} = M{lift = \f -> l2 . f . u1, unlift = \f -> u2 . f . l1}
 
-constMap = M{unlift = getConstant, lift = EConstant}
+evalExtern :: Id -> [Exp] -> Maybe (Exp, [Exp])
+evalExtern externalSymbol =
+  let
+    constMap = M{unlift = getConstant, lift = EConstant}
 
-int = compose constMap M{lift = CInt, unlift = getInt}
-string = compose constMap M{lift = CString, unlift = getString}
+    int = compose constMap M{lift = CInt, unlift = getInt}
+    string = compose constMap M{lift = CString, unlift = getString}
 
-ii2i = int -->  int --> int
-ss2s = string --> string --> string
+    ii2i = int -->  int --> int
+    ss2s = string --> string --> string
 
-i2i = int --> int
-
-tryApply1 _ [] = Nothing
-tryApply1 f (x:l) = Just (f x, l)
-
-tryApply2 _ [] = Nothing
-tryApply2 _ [_] = Nothing
-tryApply2 f (x:y:l) = Just (f x y, l)
+    i2i = int --> int
   
-evalExtern id =
-  case id of
-    "+" -> tryApply2 $ lift ii2i (+)
-    "u-" -> tryApply1 $ lift i2i (\x -> -x)
-    "-" -> tryApply2 $ lift ii2i (-)
-    "++" -> tryApply2 $ lift ss2s (++)
-    _ -> error $ "External function not defined: " ++ id    
+    tryApply1 _ [] = Nothing
+    tryApply1 f (x:l) = Just (f x, l)
 
+    tryApply2 _ [] = Nothing
+    tryApply2 _ [_] = Nothing
+    tryApply2 f (x:y:l) = Just (f x y, l)
+  in
+    case externalSymbol of
+      "+" -> tryApply2 $ lift ii2i (+)
+      "u-" -> tryApply1 $ lift i2i (\x -> -x)
+      "-" -> tryApply2 $ lift ii2i (-)
+      "++" -> tryApply2 $ lift ss2s (++)
+      _ -> error $ "External function not defined: " ++ externalSymbol
+
+type Environment = Map Id Exp
+
+bindPatterns :: Environment -> [Exp] -> [Pattern] -> Maybe Environment
 bindPatterns env [] [] = Just env
 bindPatterns env (e:es) (p:ps) =
   case bindPattern env e p of
     Nothing -> Nothing
-    Just env -> bindPatterns env es ps
+    Just newEnv -> bindPatterns newEnv es ps
 bindPatterns _ _ _ = error "apply pattern did not match"
 
 bindPattern :: Map Id Exp -> Exp -> Pattern -> Maybe (Map Id Exp)
 bindPattern env e pat =
   case pat of
-    PVar id -> Just $ Map.insert id e env
+    PVar var -> Just $ Map.insert var e env
     PConst pc -> if (EConstant pc) == e then Just Map.empty else Nothing
-    PApply pat pats ->
+    PApply pat' pats ->
       case e of
-        EApply e es ->
-          case bindPattern env e pat of
+        EApply e' es ->
+          case bindPattern env e' pat' of
             Nothing -> Nothing
             Just env' -> bindPatterns env' es pats
         _ -> error "pattern didn't match expected constructor"
 
-tryEvalFunc env f [] = f
+tryEvalFunc :: Environment -> Exp -> [Exp] -> Exp
+tryEvalFunc _ f [] = f
 tryEvalFunc env f (args@(a:as)) =
   case f of
     ELambda cases ->
@@ -94,15 +99,16 @@ tryEvalFunc env f (args@(a:as)) =
       case evalExtern extern args of
         Nothing -> EApply f args
         Just (eres, remArgs) -> tryEvalFunc env eres remArgs
-    EConstant(CConstructor id) -> EApply f args
+    EConstant(CConstructor _) -> EApply f args
     EApply innerf innerargs -> tryEvalFunc env innerf $ innerargs ++ args
     _ -> error "applying non-function"
       
+eval :: Environment -> Exp -> Exp
 eval env e =
   case e of
     EConstant _ -> e
     ELambda _ -> e
-    EVar id -> env Map.! id
+    EVar var -> env Map.! var
     EApply e1 args -> tryEvalFunc env (eval env e1) $ map (eval env) args
 
 onePlusTwo = EApply (EConstant $ CExtern "+") [EConstant $ CInt 1, EConstant $ CInt 2]
