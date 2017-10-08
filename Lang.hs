@@ -68,13 +68,11 @@ bindPatterns _ _ _ = error "apply pattern did not match"
 
 bindPattern :: Map Id Exp -> Exp -> Pattern -> Maybe (Map Id Exp)
 bindPattern env e pat =
-  case pat of
-    PVar var -> Just $ Map.insert var e env
-    PConst pc -> if pc == getConstant e then Just Map.empty else Nothing
-    PApply pat' pats ->
-      case e of
-        EApply e' es -> bindPattern env e' pat' >>= \env' -> bindPatterns env' es pats
-        _ -> error "pattern didn't match expected constructor"
+  case (pat, e) of
+    (PVar var, _) -> Just $ Map.insert var e env
+    (PConst pc, EConstant c) -> if pc == c then Just Map.empty else Nothing
+    (PApply pat' pats, EApply e' es) -> bindPattern env e' pat' >>= \env' -> bindPatterns env' es pats
+    _ -> error "pattern didn't match expression"
 
 tryEvalFunc :: Environment -> Exp -> [Exp] -> Exp
 tryEvalFunc _ f [] = f
