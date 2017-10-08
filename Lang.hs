@@ -84,17 +84,13 @@ tryEvalFunc env f (args@(a:as)) =
       let
         runFirstCase [] = error "pattern not caught"
         runFirstCase ((pat, ecase):cases') =
-          case bindPattern env a pat of
-            Nothing -> runFirstCase cases'
-            Just newEnv -> tryEvalFunc newEnv (eval newEnv ecase) as
+          maybe (runFirstCase cases') (\newEnv -> tryEvalFunc newEnv (eval newEnv ecase) as) $ bindPattern env a pat
       in
         runFirstCase cases
     EConstant c ->
       case c of
         CExtern extern ->
-          case evalExtern extern args of
-            Nothing -> EApply f args
-            Just (eres, remArgs) -> tryEvalFunc env eres remArgs
+          maybe (EApply f args) (\(eres, remArgs) -> tryEvalFunc env eres remArgs) $ evalExtern extern args
         CConstructor _ -> EApply f args
         _ -> error "applying constant"
     EApply innerf innerargs -> tryEvalFunc env innerf $ innerargs ++ args
