@@ -78,10 +78,9 @@ tryEvalFunc env f (args@(a:as)) =
 eval :: Environment -> Exp -> Exp
 eval env e =
   case e of
-    EConstant _ -> e
-    ELambda _ -> e
     EVar var -> env Map.! var
     EApply e1 args -> tryEvalFunc env (eval env e1) $ map (eval env) args
+    _ -> e
 
 evalEmpty :: Exp -> Exp
 evalEmpty = eval Map.empty
