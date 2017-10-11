@@ -66,12 +66,9 @@ tryEvalFunc env f (args@(a:as)) =
           maybe (runFirstCase cases') (\newEnv -> tryEvalFunc newEnv (eval newEnv ecase) as) $ bindPattern env a pat
       in
         runFirstCase cases
-    EConstant c ->
-      case c of
-        CExtern extern ->
-          maybe (EApply f args) (\(eres, remArgs) -> tryEvalFunc env eres remArgs) $ evalExtern extern args
-        CConstructor _ -> EApply f args
-        _ -> error "applying constant"
+    EExtern extern ->
+      maybe (EApply f args) (\(eres, remArgs) -> tryEvalFunc env eres remArgs) $ evalExtern extern args
+    EConstant (CConstructor _) -> EApply f args
     EApply innerf innerargs -> tryEvalFunc env innerf $ innerargs ++ args
     _ -> error "applying non-function"
       

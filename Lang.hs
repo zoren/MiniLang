@@ -5,7 +5,6 @@ type Id = String
 data Constant =
   CInt { getInt :: Int }
   | CString { getString :: String }
-  | CExtern Id
   | CConstructor Id
   deriving (Show, Eq)
 
@@ -17,6 +16,7 @@ data Pattern =
 
 data Exp =
   EConstant {getConstant :: Constant}
+  | EExtern Id
   | EVar Id
   | ELambda [(Pattern, Exp)]
   | EApply Exp [Exp]

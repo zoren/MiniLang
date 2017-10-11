@@ -4,7 +4,7 @@ import Lang
 import Eval
 import qualified Data.Map as Map
 
-onePlusTwo = EApply (EConstant $ CExtern "+") [EConstant $ CInt 1, EConstant $ CInt 2]
+onePlusTwo = EApply (EExtern "+") [EConstant $ CInt 1, EConstant $ CInt 2]
 
 caseTest =
   (ELambda [(PConst $ CString "a", EConstant $ CInt 1),
@@ -17,19 +17,19 @@ llist = (EApply (EConstant $ CConstructor "cons") [onePlusTwo, EConstant $ CCons
 
 tests =
     [onePlusTwo,
-    (EApply (EConstant $ CExtern "u-") [EConstant $ CInt 1]),
-    (EApply (EConstant $ CExtern "-") [EConstant $ CInt 1, EConstant $ CInt 2]),
-    (EApply (EConstant $ CExtern "++") [EConstant $ CString "a", EConstant $ CString "b"]),
+    (EApply (EExtern "u-") [EConstant $ CInt 1]),
+    (EApply (EExtern "-") [EConstant $ CInt 1, EConstant $ CInt 2]),
+    (EApply (EExtern "++") [EConstant $ CString "a", EConstant $ CString "b"]),
     (EApply (ELambda [(PVar "x",
-                                    EApply (EConstant $ CExtern "++") [EVar "x", EVar "x"])]) [EConstant $ CString "a"]),
+                                    EApply (EExtern "++") [EVar "x", EVar "x"])]) [EConstant $ CString "a"]),
     (EApply (ELambda [(PConst $ CString "a", EConstant $ CInt 1)]) [EConstant $ CString "a"]),
     (EApply caseTest [EConstant $ CString "a"]),
     (EApply caseTest [EConstant $ CString "b"]),
     llist,
     EApply lhead [llist],
     EApply ltail [llist],
-    EApply (EApply (EConstant $ CExtern "+") [EConstant $ CInt 1]) [EConstant $ CInt 2],
+    EApply (EApply (EExtern "+") [EConstant $ CInt 1]) [EConstant $ CInt 2],
     -- (\f -> f 2)(u-)
-    EApply (ELambda [(PVar "f", EApply (EVar "f") [EConstant $ CInt 2])]) [EConstant $ CExtern "u-"],
+    EApply (ELambda [(PVar "f", EApply (EVar "f") [EConstant $ CInt 2])]) [EExtern "u-"],
     -- (\f -> f 2)(+1)
-    EApply (ELambda [(PVar "f", EApply (EVar "f") [EConstant $ CInt 2])]) [EApply (EConstant $ CExtern "+") [EConstant $ CInt 1]]]
+    EApply (ELambda [(PVar "f", EApply (EVar "f") [EConstant $ CInt 2])]) [EApply (EExtern "+") [EConstant $ CInt 1]]]
